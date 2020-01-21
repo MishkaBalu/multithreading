@@ -36,9 +36,9 @@ var nsthread1 = Thread {
 }
 nsthread1.start()
 
-// MARK: - #2 Quality of Service(QoS)/Priorities
+// MARK: - #2 - Quality of Service(QoS)/Priorities
 
-//TOREAD - https://developer.apple.com/library/archive/documentation/Performance/Conceptual/EnergyGuide-iOS/PrioritizeWorkWithQoS.html
+//TOREAD - https://developer.apple.com/library/archive/documentation/Performance/Conceptual/EnergyGuide-iOS/PrioritizeWorkWithQoS.html, https://www.raywenderlich.com/5370-grand-central-dispatch-tutorial-for-swift-4-part-1-2
 
 var pthread2 = pthread_t(bitPattern: 0)
 var attribute2 = pthread_attr_t()
@@ -66,7 +66,7 @@ nsthread2.qualityOfService = .userInteractive
 nsthread2.start()
 print(qos_class_main())
 
-// MARK: - Synchronization & Mutex
+// MARK: - #3 - Synchronization & Mutex
 
 //TOREAD - https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/Multithreading/ThreadSafety/ThreadSafety.html#//apple_ref/doc/uid/10000057i-CH8-SW1, https://www.cocoawithlove.com/blog/2016/06/02/threads-and-mutexes.html, https://en.wikipedia.org/wiki/Mutual_exclusion, https://en.wikipedia.org/wiki/Semaphore_(programming)
 
@@ -109,7 +109,7 @@ array3.append("2 thread")
 array3.removeAll()
 
 class SwiftSafeThread3 {
-    private let lockMutex = NSLock()
+    private let lockMutex = NSLock() // You should not use this class to implement a recursive lock. Calling the lock method twice on the same thread will lock up your thread permanently. Use the NSRecursiveLock class to implement recursive locks instead.
     
     func someMethod(completion: () -> Void) {
         lockMutex.lock()
@@ -129,3 +129,73 @@ saveThread3.someMethod {
 
 array3.append("2 thread")
 
+// MARK: - #4 - NSRecursiveLock & Mutex Recursive lock
+
+// Race condition - is an error in a multi-threaded system or application, in which the data or an object state depends on the order in which parts of the code are executed. Условия гонки с несколькими потоками при работе с одними данными, в результате чего сами данные становятся непредсказуемыми и зависят от порядка выполнения потоков.
+
+// Resource contention - is a conflict over access to a shared resource such as random access memory, disk storage, cache memory, internal buses or external network devices. A resource experiencing ongoing contention can be described as oversubscribed. Несколько потоков, выполняющих разные задачи, пытаются получить доступ к одному ресурсу, тем самым увеличивая время, необходимое для безопасного получения ресурса. Эта задержка может привести к непредвиденному поведению.
+
+// Deadlock - multiple threads are blocking each other
+
+// Starvation - thread cannot access the resource and unsuccessfully tries to do this again and again.
+
+// Priority Inversion - thread with low priority is holding resource which another thread with bigger priority needs
+
+// Non-deterministic and Fairness - we can't do any assumptions when and in which order the thread can access the resource, this delay can't be determined and depends on the amount of conflicts. However, semaphores guarantee the fairness and access to all threads that wait, taking the order into account.
+
+
+class RecursiveMutexTest4 {
+    private var mutex = pthread_mutex_t()
+    private var attribute = pthread_mutexattr_t()
+    
+    init() {
+        pthread_mutexattr_init(&attribute)
+        pthread_mutexattr_settype(&attribute, PTHREAD_MUTEX_RECURSIVE)
+        pthread_mutex_init(&mutex, &attribute)
+    }
+    
+    func firstTask() {
+        pthread_mutex_lock(&mutex)
+        secondTask()
+        defer {
+            pthread_mutex_unlock(&mutex)
+        }
+    }
+    
+    private func secondTask() {
+        pthread_mutex_lock(&mutex)
+        print("Finish (C) (NSRecursiveLock & Mutex Recursive lock)")
+        defer {
+            pthread_mutex_unlock(&mutex)
+        }
+    }
+}
+
+let recursiveC4 = RecursiveMutexTest4()
+recursiveC4.firstTask()
+
+let recursiveLock4 = NSRecursiveLock() // if we make it as NSLock() - there will be a Starvation
+
+class RecursiveThread4: Thread {
+    override func main() {
+        recursiveLock4.lock()
+        print("Thread ackuired lock")
+        callMe()
+        defer {
+            recursiveLock4.unlock()
+        }
+        print("Exit main")
+    }
+    
+    func callMe() {
+        recursiveLock4.lock()
+        print("Thread ackuired lock")
+        defer {
+            recursiveLock4.unlock()
+        }
+        print("Exit callMe")
+    }
+}
+
+let thread4 = RecursiveThread4()
+thread4.start()
