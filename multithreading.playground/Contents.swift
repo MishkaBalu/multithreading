@@ -38,6 +38,8 @@ nsthread1.start()
 
 // MARK: - #2 Quality of Service(QoS)/Priorities
 
+//TOREAD - https://developer.apple.com/library/archive/documentation/Performance/Conceptual/EnergyGuide-iOS/PrioritizeWorkWithQoS.html
+
 var pthread2 = pthread_t(bitPattern: 0)
 var attribute2 = pthread_attr_t()
 
@@ -63,3 +65,67 @@ let nsthread2 = Thread {
 nsthread2.qualityOfService = .userInteractive
 nsthread2.start()
 print(qos_class_main())
+
+// MARK: - Synchronization & Mutex
+
+//TOREAD - https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/Multithreading/ThreadSafety/ThreadSafety.html#//apple_ref/doc/uid/10000057i-CH8-SW1, https://www.cocoawithlove.com/blog/2016/06/02/threads-and-mutexes.html, https://en.wikipedia.org/wiki/Mutual_exclusion, https://en.wikipedia.org/wiki/Semaphore_(programming)
+
+// Imagine we have array and 2 theads. Both of them are trying to append or read data from/to the array. This will cause data corruption. This is where Mutex will help. Synchronization is like saying "hey threads, please form a queue if you want to work with this array"
+
+// Semaphore - is a variable or abstract data type used to control access to a common resource by multiple processes in a concurrent system such as a multitasking operating system. A semaphore is simply a variable. This variable is used to solve critical section problems and to achieve process synchronization in the multi processing environment. A trivial semaphore is a plain variable that is changed (for example, incremented or decremented, or toggled) depending on programmer-defined conditions.
+
+// Семафо́р (англ. semaphore) — примитив синхронизации работы процессов и потоков, в основе которого лежит счётчик, над которым можно производить две атомарные операции: увеличение и уменьшение значения на единицу, при этом операция уменьшения для нулевого значения счётчика является блокирующейся. Служит для построения более сложных механизмов синхронизации и используется для синхронизации параллельно работающих задач, для защиты передачи данных через разделяемую память, для защиты критических секций, а также для управления доступом к аппаратному обеспечению. Семафоры могут быть двоичными и вычислительными. Вычислительные семафоры могут принимать целочисленные неотрицательные значения и используются для работы с ресурсами, количество которых ограничено, либо участвуют в синхронизации параллельно исполняемых задач. Двоичные семафоры являются частным случаем вычислительного семафора и могут принимать только два значения: 0 и 1.
+
+// Mutex(Mutual exclusion) - is a property of concurrency control, which is instituted for the purpose of preventing race conditions. It is the requirement that one thread of execution never enters its critical section at the same time that another concurrent thread of execution enters its own critical section, which refers to an interval of time during which a thread of execution accesses a shared resource, such as shared memory.
+
+// Мью́текс (англ. mutex, от mutual exclusion — «взаимное исключение») — аналог одноместного семафора, служащий в программировании для синхронизации одновременно выполняющихся потоков. Мьютекс отличается от семафора тем, что только владеющий им поток может его освободить, т.е. перевести в отмеченное состояние. Мьютексы — это простейшие двоичные семафоры, которые могут находиться в одном из двух состояний — отмеченном или неотмеченном (открыт и закрыт соответственно). Когда какой-либо поток, принадлежащий любому процессу, становится владельцем объекта mutex, последний переводится в неотмеченное состояние. Если задача освобождает мьютекс, его состояние становится отмеченным. Цель использования мьютексов — защита данных от повреждения в результате асинхронных изменений (состояние гонки), однако могут порождаться другие проблемы — например взаимная блокировка (клинч).
+
+class CSaveThread3 {
+    private var mutex3 = pthread_mutex_t()
+    
+    init() {
+        pthread_mutex_init(&mutex3, nil)
+    }
+    
+    func someMethod(completion: () -> Void) { // some function that will make a protection of the object
+        pthread_mutex_lock(&mutex3)
+        completion()
+        defer { //will run even if app crashes
+            pthread_mutex_unlock(&mutex3)
+        }
+    }
+}
+
+var array3 = [String]()
+
+let saveThread3 = CSaveThread3()
+saveThread3.someMethod {
+    print("This code will be runned in the mutex thread we created (C) (#3 Synchronization & Mutex)")
+    array3.append("1 thread")
+}
+
+array3.append("2 thread")
+
+array3.removeAll()
+
+class SwiftSafeThread3 {
+    private let lockMutex = NSLock()
+    
+    func someMethod(completion: () -> Void) {
+        lockMutex.lock()
+        completion()
+        defer {
+            lockMutex.unlock()
+        }
+    }
+}
+
+
+let swiftSaveThread3 = CSaveThread3()
+saveThread3.someMethod {
+    print("This code will be runned in the mutex thread we created (Swift) (#3 Synchronization & Mutex)")
+    array3.append("1 thread")
+}
+
+array3.append("2 thread")
+
