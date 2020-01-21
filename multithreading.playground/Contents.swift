@@ -179,7 +179,7 @@ let recursiveLock4 = NSRecursiveLock() // if we make it as NSLock() - there will
 class RecursiveThread4: Thread {
     override func main() {
         recursiveLock4.lock()
-        print("Thread ackuired lock")
+        print("Thread acquired lock")
         callMe()
         defer {
             recursiveLock4.unlock()
@@ -189,7 +189,7 @@ class RecursiveThread4: Thread {
     
     func callMe() {
         recursiveLock4.lock()
-        print("Thread ackuired lock")
+        print("Thread acquired lock")
         defer {
             recursiveLock4.unlock()
         }
