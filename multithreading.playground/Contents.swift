@@ -184,7 +184,7 @@ class RecursiveThread4: Thread {
         defer {
             recursiveLock4.unlock()
         }
-        print("Exit main")
+        print("Exit main\n")
     }
     
     func callMe() {
@@ -199,3 +199,99 @@ class RecursiveThread4: Thread {
 
 let thread4 = RecursiveThread4()
 thread4.start()
+
+// MARK: - #5 - NSCondition, NSLocking
+
+//TOREAD - https://developer.apple.com/documentation/foundation/nscondition
+
+// NSCondition - it's all about the order of threads.
+
+var available5 = false
+var condition5 = pthread_cond_t()
+var mutex5 = pthread_mutex_t()
+
+class ConditionMutexPrinter5: Thread {
+    override init() {
+        pthread_cond_init(&condition5, nil)
+        pthread_mutex_init(&mutex5, nil)
+    }
+    
+    override func main() {
+        printerMethod()
+    }
+    
+    private func printerMethod() {
+        pthread_mutex_lock(&mutex5)
+        print("Printer enter (C) - (NSCondition, NSLocking)")
+        while (!available5) {
+            pthread_cond_wait(&condition5, &mutex5) // waiting for signal
+        }
+        available5 = false
+        defer {
+            pthread_mutex_unlock(&mutex5)
+        }
+        print("Printer exit (C) - (NSCondition, NSLocking) \n")
+    }
+}
+
+class ConditionMutexWriter5: Thread {
+    override init() {
+        pthread_cond_init(&condition5, nil)
+        pthread_mutex_init(&mutex5, nil)
+    }
+    
+    override func main() {
+        writerMethod()
+    }
+    
+    private func writerMethod() {
+        pthread_mutex_lock(&mutex5)
+        print("Writer enter (C) - (NSCondition, NSLocking)")
+        pthread_cond_signal(&condition5) // producing signal
+        available5 = true
+        defer {
+            pthread_mutex_unlock(&mutex5)
+        }
+        print("Writer exit (C) - (NSCondition, NSLocking)")
+    }
+}
+
+let conditionMutexWriter5 = ConditionMutexWriter5()
+let conditionMutexPrinter5 = ConditionMutexPrinter5()
+
+conditionMutexPrinter5.start()
+conditionMutexWriter5.start()
+
+
+let cond5 = NSCondition()
+var swiftAvailabel5 = false
+
+class WriterThread5: Thread {
+    override func main() {
+        cond5.lock()
+        print("Writer enter (Swift) - (NSCondition, NSLocking)")
+        swiftAvailabel5 = true
+        cond5.signal()
+        cond5.unlock()
+        print("Writer exit (Swift) - (NSCondition, NSLocking)")
+    }
+}
+
+class PrinterThread5: Thread {
+    override func main() {
+        cond5.lock()
+        print("Printer enter (Swift) - (NSCondition, NSLocking)")
+        while !swiftAvailabel5 {
+            cond5.wait()
+        }
+        swiftAvailabel5 = false
+        cond5.unlock()
+        print("Printer exit (Swift) - (NSCondition, NSLocking)")
+    }
+}
+
+let conditionWriter5 = WriterThread5()
+let conditionPrinter5 = PrinterThread5()
+
+conditionPrinter5.start()
+conditionWriter5.start()
