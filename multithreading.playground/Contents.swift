@@ -361,5 +361,18 @@ class SynchronizedObjc {
 
 // MARK: - #7 - GCD, Concurrent queues, Serial queues,sync-async
 
+//TOREAD: https://developer.apple.com/documentation/dispatch/dispatchqueue
+
 // Queue is a pull of closures. We do not manage threads. We manage queues
-// Queue types: Serial queue (последовательная очередь), Concurrent queue (параллельная очередь)
+// Queue types: Serial queue (последовательная очередь), Concurrent queue (параллельная очередь). Serial queue runs in a single thread, Concurrent queue runs in multiple threads.
+
+class Queue1_7 {
+    private let serialQueue = DispatchQueue(label: "Serial queue in lesson 7")
+    private let concurrentQueue = DispatchQueue(label: "Concurrent queue in lesson 7", attributes: .concurrent)
+}
+
+class Queue2_7 {
+    private let globalQueue = DispatchQueue.global() // there are only 5 of them
+    private let mainQueue = DispatchQueue.main
+}
+
