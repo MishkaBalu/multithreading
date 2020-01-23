@@ -5,6 +5,8 @@ PlaygroundPage.current.needsIndefiniteExecution = true
 
 //MARK: - #10 - GCD DispatchWorkItem, Notify
 
+//TOREAD: https://developer.apple.com/documentation/dispatch
+
 // Главное отличие NSOperation от GCD в том, что NSOperation умеет отменять таски во время их выполнения. GCD так не умеет.
 
 class DispatchWorkItem1 {
