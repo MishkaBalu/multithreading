@@ -3,7 +3,7 @@ import PlaygroundSupport
 
 PlaygroundPage.current.needsIndefiniteExecution = true
 
-//MARK: - GCD Semaphore
+//MARK: - #11 - GCD Semaphore
 
 let queue = DispatchQueue(label: "Custom concurrent queue", attributes: .concurrent)
 
