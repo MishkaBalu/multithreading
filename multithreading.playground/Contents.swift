@@ -372,7 +372,108 @@ class Queue1_7 {
 }
 
 class Queue2_7 {
-    private let globalQueue = DispatchQueue.global() // there are only 5 of them
+    private let globalQueue = DispatchQueue.global() // there are only 5 of them: .userInteractive, .userInitiated, .utility, .background, .default
     private let mainQueue = DispatchQueue.main
 }
 
+// MARK: - #8 - GCD Practice + Bonus, Sync-Async
+
+// Firstly we choose which queue we will work in: global or main. Secondly we should choose a priority(QoS). Lastly, we should choose, should it be sync or async.
+// Do not use sync in main thread, it will cause a deadlock(взаимная блокировка)
+
+/*
+let queueLesson8 = DispatchQueue(label: "My custom Queue for lesson 8")
+queueLesson8.async {
+    print("Async operation in customQueue from lesson 8")
+    queueLesson8.sync {
+        print("Sync operation in customQueue from lesson 8. There should be a deadlock") // deadlock
+    }
+}
+
+let otherQueueLesson8 = DispatchQueue(label: "Another custom Queue for lesson 8")
+otherQueueLesson8.sync {
+    print(Thread.isMainThread)
+    DispatchQueue.main.sync {
+        print("Sync operation in main queue from lesson 8. There should be a deadlock") // deadlock
+    }
+}
+*/
+
+import PlaygroundSupport
+
+class Lesson8ViewController: UIViewController {
+    var button = UIButton()
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        self.title = "UIViewController from lesson 8"
+        view.backgroundColor = .white
+        button.addTarget(self, action: #selector(pressAction), for: .touchUpInside)
+        
+    }
+    
+    @objc func pressAction() {
+        let vc = Lesson8ViewController2()
+        self.navigationController?.pushViewController(vc, animated: true)
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        initButton()
+    }
+    
+    func initButton() {
+        button.frame = CGRect(x: 0, y: 0, width: 200, height: 50)
+        button.center = view.center
+        button.setTitle("Press", for: .normal)
+        button.backgroundColor = .green
+        button.layer.cornerRadius = 10
+        button.setTitleColor(.white, for: .normal)
+        view.addSubview(button)
+    }
+}
+
+class Lesson8ViewController2: UIViewController {
+    var image = UIImageView()
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        self.title = "Second UIViewController from lesson 8"
+        view.backgroundColor = .white
+        loadPhoto() // async behaviour
+        
+//        let imageUrl = URL(string: "https://www.planetware.com/photos-large/F/france-paris-eiffel-tower.jpg")!
+//        if let data = try? Data(contentsOf: imageUrl) { //syncronius behaviour, which is incorrect and freezes the UI
+//            self.image.image = UIImage(data: data)
+//        }
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        initImage()
+    }
+    
+    func initImage() {
+        image.frame = CGRect(x: 0, y: 0, width: 300, height: 300)
+        image.center = view.center
+        view.addSubview(image)
+    }
+    
+    func loadPhoto() {
+        let imageUrl = URL(string: "https://www.planetware.com/photos-large/F/france-paris-eiffel-tower.jpg")!
+        let queue = DispatchQueue.global(qos: .utility)
+        queue.async {
+            if let data = try? Data(contentsOf: imageUrl) {
+                DispatchQueue.main.async {
+                    self.image.image = UIImage(data: data)
+                }
+            }
+        }
+    }
+        
+}
+
+let lesson8vc = Lesson8ViewController()
+let lesson8navigationBar = UINavigationController(rootViewController: lesson8vc)
+
+PlaygroundPage.current.liveView = lesson8navigationBar
