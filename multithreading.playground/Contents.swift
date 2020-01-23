@@ -286,7 +286,7 @@ class PrinterThread5: Thread {
         }
         swiftAvailabel5 = false
         cond5.unlock()
-        print("Printer exit (Swift) - (NSCondition, NSLocking)")
+        print("Printer exit (Swift) - (NSCondition, NSLocking) \n")
     }
 }
 
@@ -295,3 +295,71 @@ let conditionPrinter5 = PrinterThread5()
 
 conditionPrinter5.start()
 conditionWriter5.start()
+
+// MARK: - #6 - ReadWriteLock, SpinLock, UnfairLock, Synchronized in Objc
+
+class ReadWriteLock { // protect property, setter or(and) getter
+    private var lock = pthread_rwlock_t()
+    private var attribute = pthread_rwlockattr_t()
+    
+    private var globalProperty: Int = 0
+    
+    init() {
+        pthread_rwlock_init(&lock, &attribute)
+    }
+    
+    public var workProperty: Int {
+        get {
+            pthread_rwlock_wrlock(&lock)
+            let temp = globalProperty
+            pthread_rwlock_unlock(&lock)
+            return temp
+        }
+        
+        set {
+            pthread_rwlock_wrlock(&lock)
+            globalProperty = newValue
+            pthread_rwlock_unlock(&lock)
+        }
+    }
+}
+
+class SpinLock {
+    private var lock = OS_SPINLOCK_INIT // deprecated in iOS 10
+    
+    func someFunction() {
+        OSSpinLockLock(&lock)
+        // run any block
+        OSSpinLockUnlock(&lock)
+    }
+}
+
+class UnfairLock {
+    private var lock = os_unfair_lock_s() // instead of SpinLock
+    
+    var array = [Int]()
+    
+    func some() {
+        os_unfair_lock_lock(&lock)
+        array.append(1)
+        os_unfair_lock_unlock(&lock)
+    }
+}
+
+
+class SynchronizedObjc {
+    private let lock = NSObject()
+    
+    var array = [Int]()
+    
+    func someMethod() {
+        objc_sync_enter(lock)
+        array.append(1)
+        objc_sync_exit(lock)
+    }
+}
+
+// MARK: - #7 - GCD, Concurrent queues, Serial queues,sync-async
+
+// Queue is a pull of closures. We do not manage threads. We manage queues
+// Queue types: Serial queue (последовательная очередь), Concurrent queue (параллельная очередь)
